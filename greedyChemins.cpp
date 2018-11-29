@@ -293,11 +293,11 @@ struct Solution {
 			s.greedy();
 			int nCost = s.cost();
 			int delta = nCost-cCost;
-			double p_accept = exp(-delta/T);
+			double p_accept = T==0 ? delta < 0 : exp(-delta/T);
 			if(p_accept >= 1 || bernoulli_distribution(p_accept)(generator)) {
 				*this = s;
 				cCost = nCost;
-				if(delta < 0)
+				if(delta < 0) // improved
 					noImproveTimer = NO_IMPROVE_TIMER;
 				if(cCost < bestCost) { // improved
 					bestCost = cCost;
