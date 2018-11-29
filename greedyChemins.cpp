@@ -79,7 +79,7 @@ struct Node {
 	bool connected = false;
 	int maxDepth = 0;
 	int parent = -1;
-	vector<int> dist;
+	vector<int>* dist;
 };
 
 ostream& operator<<(ostream& os, const Node& n) {
@@ -92,7 +92,35 @@ struct Solution {
 	vector<vector<int>> loops;
 	vector<vector<int>> paths;
 
+	int score() {
+		int ret = 0;
+		for(vector<int>& l : loops) {
+			REP(i,(int) l.size())
+				ret += nodes[l[i]].dist->at(l[(i+1)%l.size()]);
+		}
+		for(vector<int>& l : paths) {
+			REP(i,(int) l.size()-1)
+				ret += nodes[l[i]].dist->at(l[i+1]);
+		}
+		return ret;
+	}
+
+	void cleanPaths() {
+		paths.clear();
+		for(Node& n : nodes) {
+			if(n.root) {
+				n.connected = true;
+				n.maxDepth = 5;
+			} else {
+				n.connected = false;
+				n.maxDepth = 0;
+			}
+			n.parent = -1;
+		}
+	}
+
 	void generatePaths() {
+		paths.clear();
 		set<int> pathEnds;
 		REP(i,(int)nodes.size()) pathEnds.insert(i);
 		for(Node& n : nodes) {
@@ -112,13 +140,14 @@ struct Solution {
 	}
 
 	void greedy() {
+		cleanPaths();
 		set<pair<int, pair<int,              int>>> distanceToInternet;
 		//       dist      to be connected   root
 		vector<set<pair<int,int>>> distanceToInternetForNode(nodes.size());
 		// Initialization
 		for(Node& n : nodes) if(!n.connected) { // Si on a besoin de connecter la node
 			for(Node& n2 : nodes) if (n2.connected) { // On trouve les nodes connectées
-				distanceToInternetForNode[n.id].insert({n2.dist[n.id], n2.id});
+				distanceToInternetForNode[n.id].insert({n2.dist->at(n.id), n2.id});
 			}
 			const pair<int,int>& bestDist = *distanceToInternetForNode[n.id].begin();
 			distanceToInternet.insert({bestDist.first, {n.id, bestDist.second}});
@@ -131,7 +160,7 @@ struct Solution {
 			root = distanceToInternet.begin()->second.second;
 			assert(nodes[root].connected && nodes[root].maxDepth > 0 && !nodes[toConnect].connected);
 			assert(!nodes[toConnect].root);
-			assert(dist == nodes[root].dist[toConnect]);
+			assert(dist == nodes[root].dist->at(toConnect));
 			// Let's connect
 			distanceToInternet.erase(distanceToInternet.begin());
 			distanceToInternetForNode[toConnect].clear();
@@ -144,7 +173,7 @@ struct Solution {
 				REP(i, (int)nodes.size()) if(!nodes[i].connected) { // Nodes to update
 					auto bestDist = distanceToInternetForNode[i].begin();
 					pair<int, pair<int,int>> oldBest = {bestDist->first, {i, bestDist->second}};
-					distanceToInternetForNode[i].erase({nodes[root].dist[i], root});
+					distanceToInternetForNode[i].erase({nodes[root].dist->at(i), root});
 					bestDist = distanceToInternetForNode[i].begin();
 					pair<int, pair<int,int>> newBest = {bestDist->first, {i, bestDist->second}};
 					if(oldBest != newBest) {
@@ -158,7 +187,7 @@ struct Solution {
 				REP(i, (int)nodes.size()) if(!nodes[i].connected) { // Nodes to update
 					auto bestDist = distanceToInternetForNode[i].begin();
 					pair<int, pair<int,int>> oldBest = {bestDist->first, {i, bestDist->second}};
-					distanceToInternetForNode[i].insert({nodes[toConnect].dist[i], toConnect});
+					distanceToInternetForNode[i].insert({nodes[toConnect].dist->at(i), toConnect});
 					bestDist = distanceToInternetForNode[i].begin();
 					pair<int, pair<int,int>> newBest = {bestDist->first, {i, bestDist->second}};
 					if(oldBest != newBest) {
@@ -212,6 +241,8 @@ int_32 main(int_32 argc, char** argv) {
 	// Load input
 	ifstream distances(folder+"/distances.csv");
 	ifstream nodes(folder+"/nodes.csv");
+	assert(distances);
+	assert(nodes);
 	semp(nodes);
 	string drop;
 	getline(nodes, drop);
@@ -225,16 +256,19 @@ int_32 main(int_32 argc, char** argv) {
 		allNodes.pb(cn);
 		cn.id++;
 	}
+	vector<vector<int>> dists(allNodes.size());
 	for(Node& n : allNodes) {
-		n.dist.resize(allNodes.size());
-		REP(i, (int)allNodes.size()) distances >> n.dist[i];
+		n.dist = &dists[n.id];
+		n.dist->resize(allNodes.size());
+		REP(i, (int)allNodes.size()) distances >> n.dist->at(i);
 	}
 
-	for(Node& n : allNodes)
-		cout << n << endl;
+	/*for(Node& n : allNodes)
+		cout << n << endl;*/
 
 	// Load output
 	ifstream loops(folder+"/loops.out");
+	assert(loops);
 	string line;
 	while(getline(loops, line)) {
 		if(line.length() == 0) break;
@@ -265,6 +299,7 @@ int_32 main(int_32 argc, char** argv) {
 
 	ofstream out(folder+".out");
 	solution.output(out);
+	TRACE(solution.score());
 
 	return 0;
 }
