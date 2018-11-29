@@ -111,12 +111,12 @@ struct Solution {
 		cleanPaths();
 		int bestCost = cost();
 		for(vector<int>& l : loops) {
-			REVERSE(l);
+			reverse(l.begin()+1, l.end());
 			int cCost = cost();
 			if(cCost < bestCost) {
 				bestCost = cCost;
 			} else {
-				REVERSE(l);
+				reverse(l.begin()+1, l.end());
 			}
 		}
 	}
