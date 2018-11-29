@@ -284,6 +284,10 @@ struct Solution {
 
 			Solution s = *this;
 			s.loops[loopId][itemId] = swap;
+			s.nodes[item].connected = false;
+			s.nodes[item].root = false;
+			s.nodes[swap].connected = true;
+			s.nodes[swap].root = true;
 			s.greedy();
 			int nCost = s.cost();
 			int delta = nCost-cCost;
