@@ -51,6 +51,8 @@ struct semicolon_is_space : std::ctype<char> {
 	}
 };
 
+string folder;
+
 void semp(istream& is) {
 	is.imbue(locale(cin.getloc(), new semicolon_is_space));
 }
@@ -269,7 +271,7 @@ struct Solution {
 		int T = 0;
 		int cCost = cost();
 		bestCost = cCost;
-		const int NO_IMPROVE_TIMER = 50;
+		const int NO_IMPROVE_TIMER = 1e18;
 		for(int noImproveTimer = NO_IMPROVE_TIMER; noImproveTimer > 0; noImproveTimer--) {
 			int loopId = pickLoop();
 			vector<int>& loop = loops[loopId];
@@ -300,12 +302,19 @@ struct Solution {
 				if(cCost < bestCost) { // improved
 					bestCost = cCost;
 					bestSolution = s;
+					save();
 				}
 			}
 			T *= alpha;
 		}
 
 		*this = bestSolution;
+	}
+
+	void save() {
+		ofstream out(folder+".out");
+		output(out);
+		cout << folder << ": " << cost() << endl;
 	}
 };
 
@@ -317,7 +326,7 @@ int_32 main(int_32 argc, char** argv) {
 		cout << "wrong usage" << endl;
 		return 0;
 	}
-	string folder = argv[1];
+	folder = argv[1];
 
 	// Load input
 	ifstream distances(folder+"/distances.csv");
@@ -403,10 +412,7 @@ int_32 main(int_32 argc, char** argv) {
 	}
 	// call simu annealing
 	solution.simulatedAnnealing(adj);
-
-	ofstream out(folder+".out");
-	solution.output(out);
-	cout << folder << ": " << solution.cost() << endl;
+	//solution.save();
 
 	return 0;
 }
