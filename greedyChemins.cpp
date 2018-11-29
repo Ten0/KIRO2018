@@ -394,7 +394,7 @@ int_32 main(int_32 argc, char** argv) {
 	solution.greedy();
 
 	// setup adj
-	const int N_ADJ = 5;
+	const int N_ADJ = 10;
 	vector<priority_queue<pii>> adjacents(allNodes.size());
 	vector<vector<int>> adj(allNodes.size());
 	for(Node& n : allNodes) {
