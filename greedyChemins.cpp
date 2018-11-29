@@ -45,8 +45,8 @@ struct semicolon_is_space : std::ctype<char> {
 	static mask const* get_table()
 	{
 		static mask rc[table_size];
-		rc[';'] = std::ctype_base::space;
-		rc['\n'] = std::ctype_base::space;
+		rc[(int_32)';'] = std::ctype_base::space;
+		rc[(int_32)'\n'] = std::ctype_base::space;
 		return &rc[0];
 	}
 };
@@ -91,6 +91,21 @@ struct Solution {
 	vector<Node> nodes;
 	vector<vector<int>> loops;
 	vector<vector<int>> paths;
+
+	void checkCoherence() {
+		vector<int> nPathsForNode(nodes.size());
+		for(vector<int>& path : paths) {
+			for(int nid : path) {
+				nPathsForNode[nid]++;
+			}
+		}
+		for(Node& n : nodes) {
+			if(nPathsForNode[n.id] > 1 && !n.root) {
+				TRACE(n.id);
+				assert(false);
+			}
+		}
+	}
 
 	int score() {
 		int ret = 0;
@@ -208,6 +223,7 @@ struct Solution {
 		}
 
 		generatePaths();
+		checkCoherence();
 	}
 
 	void output(ostream& os) {
@@ -227,7 +243,7 @@ struct Solution {
 		}
 	}
 
-	void simulatedAnnealing() {
+	/*void simulatedAnnealing() {
 		default_random_engine generator;
 		uniform_int_distribution<int> pickLoopD(0,loops.size()-1);
 		auto pickLoop = bind(pickLoopD, generator);
@@ -237,7 +253,7 @@ struct Solution {
 		for(int noMoveTimer = 10000; noMoveTimer > 0; noMoveTimer--) {
 			
 		}
-	}
+	}*/
 };
 
 
