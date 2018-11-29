@@ -271,42 +271,45 @@ struct Solution {
 		double T = 10;
 		int cCost = cost();
 		bestCost = cCost;
-		const int NO_IMPROVE_TIMER = 1e18;
-		for(int noImproveTimer = NO_IMPROVE_TIMER; noImproveTimer > 0; noImproveTimer--) {
-			int loopId = pickLoop();
-			vector<int>& loop = loops[loopId];
-			if(loop.size() <= 1) continue;
-			uniform_int_distribution<int> pickItem(1,loop.size()-1);
-			int itemId = pickItem(generator);
-			int item = loop.at(itemId);
-			
-			uniform_int_distribution<int> pickSwap(0,adjacents[item].size()-1);
-			int swap = adjacents[item][pickSwap(generator)];
-			if(nodes[swap].root) continue;
+		const int NO_IMPROVE_TIMER = 1000;
+		while(true) {
+			for(int noImproveTimer = NO_IMPROVE_TIMER; noImproveTimer > 0; noImproveTimer--) {
+				int loopId = pickLoop();
+				vector<int>& loop = loops[loopId];
+				if(loop.size() <= 1) continue;
+				uniform_int_distribution<int> pickItem(1,loop.size()-1);
+				int itemId = pickItem(generator);
+				int item = loop.at(itemId);
 
-			Solution s = *this;
-			s.loops[loopId][itemId] = swap;
-			s.nodes[item].connected = false;
-			s.nodes[item].root = false;
-			s.nodes[swap].connected = true;
-			s.nodes[swap].root = true;
-			s.greedy();
-			int nCost = s.cost();
-			int delta = nCost-cCost;
-			double p_accept = T==0 ? delta < 0 : exp(-delta/T);
-			if(p_accept >= 1 || bernoulli_distribution(p_accept)(generator)) {
-				*this = s;
-				cCost = nCost;
-				if(delta < 0) // improved
-					noImproveTimer = NO_IMPROVE_TIMER;
-				if(cCost < bestCost) { // improved
-					bestCost = cCost;
-					bestSolution = s;
-					TRACE(T);
-					save();
+				uniform_int_distribution<int> pickSwap(0,adjacents[item].size()-1);
+				int swap = adjacents[item][pickSwap(generator)];
+				if(nodes[swap].root) continue;
+
+				Solution s = *this;
+				s.loops[loopId][itemId] = swap;
+				s.nodes[item].connected = false;
+				s.nodes[item].root = false;
+				s.nodes[swap].connected = true;
+				s.nodes[swap].root = true;
+				s.greedy();
+				int nCost = s.cost();
+				int delta = nCost-cCost;
+				double p_accept = T==0 ? delta < 0 : exp(-delta/T);
+				if(p_accept >= 1 || bernoulli_distribution(p_accept)(generator)) {
+					*this = s;
+					cCost = nCost;
+					if(cCost < bestCost) { // improved
+						bestCost = cCost;
+						bestSolution = s;
+						TRACE(T);
+						TRACE(noImproveTimer);
+						save();
+					}
+					if(delta < 0) // improved
+						noImproveTimer = NO_IMPROVE_TIMER;
 				}
+				T *= alpha;
 			}
-			T *= alpha;
 		}
 
 		*this = bestSolution;
@@ -391,7 +394,7 @@ int_32 main(int_32 argc, char** argv) {
 	solution.greedy();
 
 	// setup adj
-	const int N_ADJ = 3;
+	const int N_ADJ = 5;
 	vector<priority_queue<pii>> adjacents(allNodes.size());
 	vector<vector<int>> adj(allNodes.size());
 	for(Node& n : allNodes) {
