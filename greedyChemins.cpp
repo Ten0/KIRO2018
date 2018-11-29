@@ -226,6 +226,18 @@ struct Solution {
 			}
 		}
 	}
+
+	void simulatedAnnealing() {
+		default_random_engine generator;
+		uniform_int_distribution<int> pickLoopD(0,loops.size()-1);
+		auto pickLoop = bind(pickLoopD, generator);
+
+		int alpha = 0.9999;
+		int T = 300;
+		for(int noMoveTimer = 10000; noMoveTimer > 0; noMoveTimer--) {
+			
+		}
+	}
 };
 
 
