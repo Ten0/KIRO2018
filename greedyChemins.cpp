@@ -99,6 +99,7 @@ struct Solution {
 			pathEnds.erase(n.parent);
 		}
 		for(int pathEnd : pathEnds) {
+			if(nodes[pathEnd].root) continue;
 			paths.resize(paths.size()+1);
 			vector<int>& path = paths[paths.size()-1];
 			int pivot = pathEnd;
@@ -220,8 +221,6 @@ int_32 main(int_32 argc, char** argv) {
 	Node cn;
 	string type;
 	while(nodes >> cn.x >> cn.y >> type) {
-		TRACE(cn.id);
-		TRACE(type);
 		cn.root = type[0] == 'd';
 		allNodes.pb(cn);
 		cn.id++;
@@ -238,7 +237,6 @@ int_32 main(int_32 argc, char** argv) {
 	ifstream loops(folder+"/loops.out");
 	string line;
 	while(getline(loops, line)) {
-		TRACE(line);
 		if(line.length() == 0) break;
 		vector<string> splitted = split(line, " ");
 		if(splitted.size() < 2) break;
@@ -249,7 +247,6 @@ int_32 main(int_32 argc, char** argv) {
 			solution.loops.resize(solution.loops.size()+1);
 			FOR(i, 1, (int)splitted.size()) {
 				int id = stoi(splitted[i]);
-				TRACE(id);
 				if(allNodes[id].root) atLeastOneRoot = true;
 				allNodes[id].root = true;
 				allNodes[id].connected = true;
