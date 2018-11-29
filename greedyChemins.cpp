@@ -265,20 +265,22 @@ struct Solution {
 		Solution bestSolution = *this;
 		int bestCost;
 
-		double alpha = 0.9999;
+		double alpha = 0.99;
 		int T = 0;
 		int cCost = cost();
 		bestCost = cCost;
-		const int NO_IMPROVE_TIMER = 20;
+		const int NO_IMPROVE_TIMER = 50;
 		for(int noImproveTimer = NO_IMPROVE_TIMER; noImproveTimer > 0; noImproveTimer--) {
 			int loopId = pickLoop();
 			vector<int>& loop = loops[loopId];
-			uniform_int_distribution<int> pickItem(0,loop.size()-1);
+			if(loop.size() <= 1) continue;
+			uniform_int_distribution<int> pickItem(1,loop.size()-1);
 			int itemId = pickItem(generator);
-			int item = loop[itemId];
+			int item = loop.at(itemId);
 			
 			uniform_int_distribution<int> pickSwap(0,adjacents[item].size()-1);
 			int swap = adjacents[item][pickSwap(generator)];
+			if(nodes[swap].root) continue;
 
 			Solution s = *this;
 			s.loops[loopId][itemId] = swap;
