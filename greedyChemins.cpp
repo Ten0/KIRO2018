@@ -268,7 +268,7 @@ struct Solution {
 		int bestCost;
 
 		double alpha = 0.99;
-		int T = 0;
+		int T = 10;
 		int cCost = cost();
 		bestCost = cCost;
 		const int NO_IMPROVE_TIMER = 1e18;
