@@ -257,17 +257,50 @@ struct Solution {
 		}
 	}
 
-	/*void simulatedAnnealing() {
+	void simulatedAnnealing(const vector<vector<int>> adjacents) {
 		default_random_engine generator;
 		uniform_int_distribution<int> pickLoopD(0,loops.size()-1);
 		auto pickLoop = bind(pickLoopD, generator);
 
-		int alpha = 0.9999;
-		int T = 300;
-		for(int noMoveTimer = 10000; noMoveTimer > 0; noMoveTimer--) {
+		Solution bestSolution = *this;
+		int bestCost;
+
+		double alpha = 0.9999;
+		int T = 0;
+		int cCost = cost();
+		bestCost = cCost;
+		const int NO_IMPROVE_TIMER = 20;
+		for(int noImproveTimer = NO_IMPROVE_TIMER; noImproveTimer > 0; noImproveTimer--) {
+			int loopId = pickLoop();
+			vector<int>& loop = loops[loopId];
+			uniform_int_distribution<int> pickItem(0,loop.size()-1);
+			int itemId = pickItem(generator);
+			int item = loop[itemId];
 			
+			uniform_int_distribution<int> pickSwap(0,adjacents[item].size()-1);
+			int swap = adjacents[item][pickSwap(generator)];
+
+			Solution s = *this;
+			s.loops[loopId][itemId] = swap;
+			s.greedy();
+			int nCost = s.cost();
+			int delta = nCost-cCost;
+			double p_accept = exp(-delta/T);
+			if(p_accept >= 1 || bernoulli_distribution(p_accept)(generator)) {
+				*this = s;
+				cCost = nCost;
+				if(delta < 0)
+					noImproveTimer = NO_IMPROVE_TIMER;
+				if(cCost < bestCost) { // improved
+					bestCost = cCost;
+					bestSolution = s;
+				}
+			}
+			T *= alpha;
 		}
-	}*/
+
+		*this = bestSolution;
+	}
 };
 
 
@@ -341,9 +374,33 @@ int_32 main(int_32 argc, char** argv) {
 
 	solution.greedy();
 
+	// setup adj
+	const int N_ADJ = 3;
+	vector<priority_queue<pii>> adjacents(allNodes.size());
+	vector<vector<int>> adj(allNodes.size());
+	for(Node& n : allNodes) {
+		for(Node& n2 : allNodes) {
+			int d1 = n.dist->at(n2.id);
+			int d2 = n2.dist->at(n.id);
+			int d = (d1+d2)/2;
+			if(adjacents[n.id].size() < N_ADJ || d < adjacents[n.id].top().first) {
+				if(adjacents[n.id].size() == N_ADJ)
+					adjacents[n.id].pop();
+				adjacents[n.id].push({d, n2.id});
+			}
+		}
+		while(!adjacents[n.id].empty()) {
+			adj[n.id].pb(adjacents[n.id].top().second);
+			adjacents[n.id].pop();
+		}
+		REVERSE(adj[n.id]);
+	}
+	// call simu annealing
+	solution.simulatedAnnealing(adj);
+
 	ofstream out(folder+".out");
 	solution.output(out);
-	TRACE(solution.cost());
+	cout << folder << ": " << solution.cost() << endl;
 
 	return 0;
 }
