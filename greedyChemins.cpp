@@ -107,7 +107,21 @@ struct Solution {
 		}
 	}
 
-	int score() {
+	void optimizeLoopsFlip() {
+		cleanPaths();
+		int bestCost = cost();
+		for(vector<int>& l : loops) {
+			REVERSE(l);
+			int cCost = cost();
+			if(cCost < bestCost) {
+				bestCost = cCost;
+			} else {
+				REVERSE(l);
+			}
+		}
+	}
+
+	int cost() {
 		int ret = 0;
 		for(vector<int>& l : loops) {
 			REP(i,(int) l.size())
@@ -323,11 +337,13 @@ int_32 main(int_32 argc, char** argv) {
 		} else assert(false);
 	}
 
+	solution.optimizeLoopsFlip();
+
 	solution.greedy();
 
 	ofstream out(folder+".out");
 	solution.output(out);
-	TRACE(solution.score());
+	TRACE(solution.cost());
 
 	return 0;
 }
