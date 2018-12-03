@@ -11,16 +11,16 @@ all: 11 21 31 41 51 61 71 81
 71:
 81:
 
-greedyChemins:
-pim: greedyChemins ./pim/loops.out
-	./greedyChemins pim
-grenoble: greedyChemins ./grenoble/loops.out
-	./greedyChemins grenoble
-nice: greedyChemins ./nice/loops.out
-	./greedyChemins nice
-submissions: greedyChemins ./grenoble/loops.out ./nice/loops.out ./pim/loops.out
-	./greedyChemins grenoble &
-	./greedyChemins nice &
-	./greedyChemins pim
-v: greedyChemins
-	valgrind ./greedyChemins grenoble
+simulatedAnnealing:
+pim: simulatedAnnealing ./pim/loops.out
+	./simulatedAnnealing pim
+grenoble: simulatedAnnealing ./grenoble/loops.out
+	./simulatedAnnealing grenoble
+nice: simulatedAnnealing ./nice/loops.out
+	./simulatedAnnealing nice
+submissions: simulatedAnnealing ./grenoble/loops.out ./nice/loops.out ./pim/loops.out
+	./simulatedAnnealing grenoble &
+	./simulatedAnnealing nice &
+	./simulatedAnnealing pim
+v: simulatedAnnealing
+	valgrind ./simulatedAnnealing grenoble
