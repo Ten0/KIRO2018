@@ -1,16 +1,6 @@
 CXX=clang++
 CXXFLAGS=-std=c++11 -g -Wall -Wextra -DDEBUG -O3
 
-all: 11 21 31 41 51 61 71 81
-11:
-21:
-31:
-41:
-51:
-61:
-71:
-81:
-
 simulatedAnnealing:
 pim: simulatedAnnealing ./pim/loops.out
 	./simulatedAnnealing pim
