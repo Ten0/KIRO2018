@@ -343,8 +343,8 @@ struct Solution {
 		Solution bestSolution = *this;
 		int bestCost;
 
-		double alpha = 0.9995;
-		double T = 50;
+		double alpha = 0.9998;
+		double T = 60;
 		int cCost = cost();
 		bestCost = cCost;
 		const int NO_IMPROVE_TIMER = 1000;
