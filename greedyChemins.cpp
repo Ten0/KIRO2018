@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 
 #ifndef DEBUG
-#define DEBUG 0
+#define DEBUG 1
 #endif
 
 #define pb push_back
@@ -52,6 +52,8 @@ struct semicolon_is_space : std::ctype<char> {
 };
 
 string folder;
+
+default_random_engine generator;
 
 void semp(istream& is) {
 	is.imbue(locale(cin.getloc(), new semicolon_is_space));
@@ -121,6 +123,14 @@ struct Solution {
 				reverse(l.begin()+1, l.end());
 			}
 		}
+	}
+
+	float averageLoopSize(){
+		int total = 0;
+		for(auto & loop : loops){
+			total += loop.size();
+		}
+		return float(total) / loops.size();
 	}
 
 	int cost() {
@@ -259,50 +269,116 @@ struct Solution {
 		}
 	}
 
+	bool randomSwap(int loopId, const vector<vector<int>> & adjacents){
+		vector<int>& loop = loops[loopId];
+		if(loop.size() <= 1) return false;
+
+		uniform_int_distribution<int> pickItem(1,loop.size()-1);
+		int itemId = pickItem(generator);
+		int item = loop.at(itemId);
+
+		uniform_int_distribution<int> pickSwap(0,adjacents[item].size()-1);
+		int swap = adjacents[item][pickSwap(generator)];
+		if(nodes[swap].root) return false;
+
+		loops[loopId][itemId] = swap;
+		nodes[item].connected = false;
+		nodes[item].root = false;
+		nodes[swap].connected = true;
+		nodes[swap].root = true;
+		return true;
+	}
+
+	bool randomAdd(int loopId, const vector<vector<int>> & adjacents){
+		vector<int>& loop = loops[loopId];
+		int n = loop.size();
+		if(n == 30) return false;
+
+		uniform_int_distribution<int> pickItem(0,n-1);
+		int itemId = pickItem(generator);
+		int item = loop.at(itemId);
+		int prev = (itemId - 1 + n) % n;
+		int next = (itemId + 1) % n;
+
+		uniform_int_distribution<int> pickAdd(0,adjacents[item].size()-1);
+		int add;
+		REP(k, 5){
+			add = adjacents[item][pickAdd(generator)];
+			if(!nodes[add].root) break;
+		}
+
+		if(nodes[add].root) return false;
+
+		//prev -> add -> item
+		int d1 = nodes[prev].dist->at(add) + nodes[add].dist->at(item);
+		//item -> add -> next
+		int d2 = nodes[item].dist->at(add) + nodes[add].dist->at(next);
+		if(d1 > d2 || itemId == 0) loop.insert(loop.begin() + itemId + 1, add);
+		else loop.insert(loop.begin() + itemId, add);
+
+		nodes[add].connected = true;
+		nodes[add].root = true;
+		return true;
+	}
+
+	bool randomRmv(int loopId, const vector<vector<int>> & adjacents){
+		vector<int>& loop = loops[loopId];
+		int n = loop.size();
+
+		if(n == 1) return false;
+
+		uniform_int_distribution<int> pickItem(1,n-1);
+		int rmvId = pickItem(generator);
+		int rmv = loop.at(rmvId);
+		loop.erase(loop.begin() + rmvId);
+		nodes[rmv].connected = false;
+		nodes[rmv].root = false;
+		return true;
+	}
+
 	void simulatedAnnealing(const vector<vector<int>> adjacents) {
-		default_random_engine generator;
 		uniform_int_distribution<int> pickLoopD(0,loops.size()-1);
 		auto pickLoop = bind(pickLoopD, generator);
 
 		Solution bestSolution = *this;
 		int bestCost;
 
-		double alpha = 0.99;
-		double T = 10;
+		double alpha = 0.9998;
+		double T = 60;
 		int cCost = cost();
 		bestCost = cCost;
 		const int NO_IMPROVE_TIMER = 1000;
 		while(true) {
 			for(int noImproveTimer = NO_IMPROVE_TIMER; noImproveTimer > 0; noImproveTimer--) {
 				int loopId = pickLoop();
-				vector<int>& loop = loops[loopId];
-				if(loop.size() <= 1) continue;
-				uniform_int_distribution<int> pickItem(1,loop.size()-1);
-				int itemId = pickItem(generator);
-				int item = loop.at(itemId);
-
-				uniform_int_distribution<int> pickSwap(0,adjacents[item].size()-1);
-				int swap = adjacents[item][pickSwap(generator)];
-				if(nodes[swap].root) continue;
 
 				Solution s = *this;
-				s.loops[loopId][itemId] = swap;
-				s.nodes[item].connected = false;
-				s.nodes[item].root = false;
-				s.nodes[swap].connected = true;
-				s.nodes[swap].root = true;
+
+				uniform_real_distribution<float> chooseAction(0.0, 1.0);
+				float action = chooseAction(generator);
+				bool didSomething;
+				if(action <= 0.45) didSomething = s.randomAdd(loopId, adjacents);
+				else if(action <= 0.65) didSomething = s.randomRmv(loopId, adjacents);
+				else didSomething = s.randomSwap(loopId, adjacents);
+
+				if(!didSomething) continue;
+
+				s.optimizeLoopsFlip();
 				s.greedy();
+
 				int nCost = s.cost();
+
 				int delta = nCost-cCost;
 				double p_accept = T==0 ? delta < 0 : exp(-delta/T);
 				if(p_accept >= 1 || bernoulli_distribution(p_accept)(generator)) {
 					*this = s;
 					cCost = nCost;
+					if(delta != 0){
+						cout << cCost << " - T = " << T << " - avg loop size = " << s.averageLoopSize() << endl;
+					}
 					if(cCost < bestCost) { // improved
 						bestCost = cCost;
 						bestSolution = s;
-						TRACE(T);
-						TRACE(noImproveTimer);
 						save();
 					}
 					if(delta < 0) // improved
@@ -318,7 +394,6 @@ struct Solution {
 	void save() {
 		ofstream out(folder+".out");
 		output(out);
-		cout << folder << ": " << cost() << endl;
 	}
 };
 
@@ -345,11 +420,18 @@ int_32 main(int_32 argc, char** argv) {
 	vector<Node>& allNodes = solution.nodes;
 	Node cn;
 	string type;
-	while(nodes >> cn.x >> cn.y >> type) {
-		cn.root = type[0] == 'd';
+	int nbRoots = 0;
+
+	while(nodes >> cn.x >> cn.y >> type){
+		if(type[0] == 'd'){
+			cn.root = true;
+			nbRoots++;
+		}
+		else cn.root = false;
 		allNodes.pb(cn);
 		cn.id++;
 	}
+
 	vector<vector<int>> dists(allNodes.size());
 	for(Node& n : allNodes) {
 		n.dist = &dists[n.id];
@@ -357,43 +439,14 @@ int_32 main(int_32 argc, char** argv) {
 		REP(i, (int)allNodes.size()) distances >> n.dist->at(i);
 	}
 
-	/*for(Node& n : allNodes)
-		cout << n << endl;*/
-
-	// Load output
-	ifstream loops(folder+"/loops.out");
-	assert(loops);
-	string line;
-	while(getline(loops, line)) {
-		if(line.length() == 0) break;
-		vector<string> splitted = split(line, " ");
-		if(splitted.size() < 2) break;
-		if (splitted[0][0] == 'b') {
-			// C'est une boucle !
-			assert(splitted.size() <= 31);
-			bool atLeastOneRoot = false;
-			solution.loops.resize(solution.loops.size()+1);
-			FOR(i, 1, (int)splitted.size()) {
-				int id = stoi(splitted[i]);
-				if(allNodes[id].root) atLeastOneRoot = true;
-				allNodes[id].root = true;
-				allNodes[id].connected = true;
-				allNodes[id].maxDepth = 5;
-				solution.loops[solution.loops.size()-1].pb(id);
-			}
-			assert(atLeastOneRoot);
-		} else if (splitted[0][0] == 'c') {
-			// C'est un chemin
-			assert(splitted.size() <= 7);
-			assert(false); // Not implemented
-		} else assert(false);
+	solution.loops.resize(nbRoots);
+	int loopIdx = 0;
+	for(auto & loop : solution.loops){
+		loop.pb(loopIdx);
+		loopIdx++;
 	}
 
-	solution.optimizeLoopsFlip();
-
-	solution.greedy();
-
-	// setup adj
+	//compute N_ADJ  closest nodes to each node
 	const int N_ADJ = 10;
 	vector<priority_queue<pii>> adjacents(allNodes.size());
 	vector<vector<int>> adj(allNodes.size());
@@ -414,9 +467,11 @@ int_32 main(int_32 argc, char** argv) {
 		}
 		REVERSE(adj[n.id]);
 	}
-	// call simu annealing
+
+	solution.optimizeLoopsFlip();
+	solution.greedy();
+
 	solution.simulatedAnnealing(adj);
-	//solution.save();
 
 	return 0;
 }
