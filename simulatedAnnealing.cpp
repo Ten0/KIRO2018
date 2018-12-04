@@ -269,7 +269,7 @@ struct Solution {
 		}
 	}
 
-	bool randomSwap(int loopId, const vector<vector<int>> & adjacents){
+	bool randomSwap(int loopId, const vector<vector<int>>& adjacents){
 		vector<int>& loop = loops[loopId];
 		if(loop.size() <= 1) return false;
 
@@ -279,13 +279,24 @@ struct Solution {
 
 		uniform_int_distribution<int> pickSwap(0,adjacents[item].size()-1);
 		int swap = adjacents[item][pickSwap(generator)];
-		if(nodes[swap].root) return false;
+		if(nodes[swap].root){
+			auto itSwap = find(loop.begin(), loop.end(), swap);
+			if(itSwap != loop.begin() && itSwap != loop.end()){
+				int swapId = distance(loop.begin(), itSwap);
+				loop[swapId] = item;
+				loop[itemId] = swap;
+			}
+			else return false;
+		}
+		else{
+			loop[itemId] = swap;
+			nodes[item].connected = false;
+			nodes[item].root = false;
+			nodes[swap].connected = true;
+			nodes[swap].root = true;
+		}
 
-		loops[loopId][itemId] = swap;
-		nodes[item].connected = false;
-		nodes[item].root = false;
-		nodes[swap].connected = true;
-		nodes[swap].root = true;
+
 		return true;
 	}
 
@@ -343,8 +354,11 @@ struct Solution {
 		Solution bestSolution = *this;
 		int bestCost;
 
-		double alpha = 0.9998;
-		double T = 60;
+		double alpha = 0.99985;
+		double T = 30;
+		float pAdd = 0.35;
+		float pRemove = 0.3;
+
 		int cCost = cost();
 		bestCost = cCost;
 		const int NO_IMPROVE_TIMER = 1000;
@@ -354,11 +368,12 @@ struct Solution {
 
 				Solution s = *this;
 
+				bool didSomething = false;
+
 				uniform_real_distribution<float> chooseAction(0.0, 1.0);
 				float action = chooseAction(generator);
-				bool didSomething;
-				if(action <= 0.45) didSomething = s.randomAdd(loopId, adjacents);
-				else if(action <= 0.65) didSomething = s.randomRmv(loopId, adjacents);
+				if(action <= pAdd) didSomething = s.randomAdd(loopId, adjacents);
+				else if(action <= pAdd + pRemove) didSomething = s.randomRmv(loopId, adjacents);
 				else didSomething = s.randomSwap(loopId, adjacents);
 
 				if(!didSomething) continue;
